@@ -2,6 +2,7 @@ package main
 
 import (
 	"Formatter/phase2"
+	"flag"
 	"fmt"
 	"sync"
 	"time"
@@ -20,25 +21,38 @@ func createWorkerPool(nWorker int, tasks chan *phase2.Task, taskResults chan *ph
 		}()
 	}
 	wg.Wait()
-	close(taskResults)
 }
 
 func main() {
-	startTime := time.Now()
-	nWorker := 5
-	coordinator := phase2.MakeCoordinator("input.txt", nWorker) // get from cla
+	var nWorker int
+	var inputFile string
+	flag.IntVar(&nWorker, "n", 5, "number of workers")
+	flag.StringVar(&inputFile, "file", "input.txt", "input file")
+	flag.Parse()
+	coordinator, tasksCount := phase2.MakeCoordinator(inputFile)
+
 	// initialize the channels
-	var tasks = make(chan *phase2.Task, nWorker)             // send to channel
-	var taskResults = make(chan *phase2.TaskResult, nWorker) // receive from this channel
+	var tasks = make(chan *phase2.Task, tasksCount)             // send to channel
+	var taskResults = make(chan *phase2.TaskResult, tasksCount) // receive from this channel
+
+	startTime := time.Now()
 
 	go func() {
 		err := coordinator.Allocate(tasks)
 		if err != nil {
 			println("Error in allocation")
 		}
+		close(tasks)
 	}()
-	createWorkerPool(nWorker, tasks, taskResults) // get from cla
+
+	go createWorkerPool(nWorker, tasks, taskResults)
+
+	err := coordinator.HandleResult(taskResults)
+	if err != nil {
+		panic(err)
+	}
+
 	endTime := time.Now()
 	diff := endTime.Sub(startTime)
-	fmt.Println("total time taken ", diff.Seconds(), "seconds")
+	fmt.Println("Total time taken:", diff.Seconds(), "seconds")
 }
