@@ -5,6 +5,7 @@ package phase1
 import (
 	"math"
 	"strconv"
+	"unicode"
 )
 
 // Ordinal returns the ordinal string for a specific integer.
@@ -30,6 +31,15 @@ func Ordinal(number int) string {
 
 // Ordinalize the number by adding the Ordinal to the number.
 func Ordinalize(number []byte) []byte {
-	numberInt, _ := strconv.Atoi(string(number[:]))
-	return append(number, []byte(Ordinal(numberInt))...)
+	var numeric []byte
+	for i := 0; i < len(number); i++ {
+		if unicode.IsDigit(rune(number[i])) {
+			numeric = append(numeric, number[i])
+		} else {
+			break
+		}
+	}
+	numberInt, _ := strconv.Atoi(string(numeric))
+	ordinal := []byte(Ordinal(numberInt))
+	return append(numeric, append([]byte(""), append(ordinal, number[len(numeric):]...)...)...)
 }
