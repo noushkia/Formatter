@@ -29,7 +29,7 @@ func capitalizeSentences(sentences []string) []string {
 
 func toOrdinal(sentences []string) []string {
 	// todo: The regex could be improved to check if the ordinal value is correct
-	isNumericReg := regexp.MustCompile(`[0-9]+`)
+	isNumericReg := regexp.MustCompile(`[0-9]+ `)
 	for i := range sentences {
 		words := strings.Fields(sentences[i])
 		for j := range words {

@@ -1,8 +1,8 @@
 This is my 1st attempt to write a go program. Hello world!
-This is my 2nd attempt to write a go program. Hello world! What?
-This is my 3rd attempt to write a go program. Hello world! What?
-This is my 4th attempt to write a go program. Hello world! How?
-This is my 21st attempt to write a go program. Hello world! Who?
-This is my 23rd attempt to write a go program. Hello world! Why?
-This is my 100th attempt no! To write a go program. Hello world!
-This is my 1000th attempt to write a go program. Hello world!
+This is my 2 attempt to write a go program. Hello world! What?
+This is my 3 attempt to write a go program. Hello world! What?
+This is my 4 attempt to write a go program. Hello world! How?
+This is my 21 attempt to write a go program. Hello world! Who?
+This is my 23 attempt to write a go program. Hello world! Why?
+This is my 100 attempt no! To write a go program. Hello world!
+This is my 1000 attempt to write a go program. Hello world!
