@@ -5,16 +5,16 @@ import (
 	"strings"
 )
 
-func splitIntoSentences(s string) []string {
-	var sentences []string
+func splitIntoSentences(sentences string) []string {
+	var result []string
 	last := 0
-	for i, r := range s {
+	for i, r := range sentences {
 		if r == '.' || r == '!' || r == '?' {
-			sentences = append(sentences, s[last:i+1])
+			result = append(result, sentences[last:i+1])
 			last = i + 1
 		}
 	}
-	return sentences
+	return result
 }
 
 func capitalizeSentences(sentences []string) []string {

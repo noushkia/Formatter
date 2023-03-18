@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	file, err := os.Open("input.txt")
+	inputFile, err := os.Open("input.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -19,7 +19,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-	}(file)
+	}(inputFile)
 
 	outputFile, err := os.Create("output.txt")
 	if err != nil {
@@ -34,17 +34,18 @@ func main() {
 
 	startTime := time.Now()
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(inputFile)
 	for scanner.Scan() {
 		inputSentence := scanner.Text()
 
 		formattedSentence := phase1.Format(inputSentence)
 
-		_, err = fmt.Fprintln(outputFile, formattedSentence)
+		_, err = outputFile.WriteString(formattedSentence + "\n")
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
+
 	endTime := time.Now()
 	diff := endTime.Sub(startTime)
 	fmt.Println("Total time taken:", diff.Seconds(), "seconds")
