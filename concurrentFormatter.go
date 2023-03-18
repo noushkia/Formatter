@@ -2,52 +2,71 @@ package main
 
 import (
 	"Formatter/phase2"
+	"bufio"
 	"flag"
 	"fmt"
+	"log"
+	"os"
 	"sync"
 	"time"
 )
 
-func createWorkerPool(nWorker int, tasks chan *phase2.Task, taskResults chan *phase2.TaskResult) {
-	var wg sync.WaitGroup
+const (
+	defaultNWorker    = 5
+	defaultInputFile  = "input.txt"
+	defaultOutputFile = "output.txt"
+)
 
+var nWorker = flag.Int("n", defaultNWorker, "number of workers")
+var inputFile = flag.String("input", defaultInputFile, "input file")
+var outputFile = flag.String("output", defaultOutputFile, "output file")
+
+func createWorkerPool(nWorker int, tasks <-chan *phase2.Task, taskResults chan<- *phase2.TaskResult) {
+	var wg sync.WaitGroup
 	wg.Add(nWorker)
 	for i := 0; i < nWorker; i++ {
 		go func() {
-			err := phase2.Worker(&wg, tasks, taskResults)
-			if err != nil {
-				println("Error in worker")
-			}
+			phase2.Worker(tasks, taskResults, &wg)
 		}()
 	}
 	wg.Wait()
 }
 
 func main() {
-	var nWorker int
-	var inputFile string
-	flag.IntVar(&nWorker, "n", 5, "number of workers")
-	flag.StringVar(&inputFile, "file", "input.txt", "input file")
 	flag.Parse()
-	coordinator, tasksCount := phase2.MakeCoordinator(inputFile)
 
-	// initialize the channels
-	var tasks = make(chan *phase2.Task, tasksCount)             // send to channel
-	var taskResults = make(chan *phase2.TaskResult, tasksCount) // receive from this channel
+	input, err := os.Open(*inputFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(input)
+
+	output, err := os.Create(*outputFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func(output *os.File) {
+		_ = output.Close()
+	}(output)
 
 	startTime := time.Now()
+	scanner := bufio.NewScanner(input)
+	coordinator, taskCount, err := phase2.MakeCoordinator(scanner)
+	if err != nil {
+		panic(err)
+	}
 
-	go func() {
-		err := coordinator.Allocate(tasks)
-		if err != nil {
-			println("Error in allocation")
-		}
-		close(tasks)
-	}()
+	tasks := make(chan *phase2.Task, taskCount)
+	taskResults := make(chan *phase2.TaskResult, taskCount)
 
-	go createWorkerPool(nWorker, tasks, taskResults)
+	// Start worker pool, allocate tasks, and wait for tasks to be completed
+	go createWorkerPool(*nWorker, tasks, taskResults)
+	go coordinator.Allocate(tasks)
 
-	err := coordinator.HandleResult(taskResults)
+	err = coordinator.HandleResult(output, taskResults)
+	close(taskResults)
 	if err != nil {
 		panic(err)
 	}

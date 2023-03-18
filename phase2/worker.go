@@ -5,11 +5,10 @@ import (
 	"sync"
 )
 
-func Worker(wg *sync.WaitGroup, tasks chan *Task, taskResults chan *TaskResult) error {
+func Worker(tasks <-chan *Task, taskResults chan<- *TaskResult, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for task := range tasks {
-		output := &TaskResult{id: task.id, line: phase1.Format(task.line)}
-		taskResults <- output
+		taskResult := &TaskResult{id: task.id, line: phase1.Format(task.line)}
+		taskResults <- taskResult
 	}
-	wg.Done()
-	return nil
 }

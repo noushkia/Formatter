@@ -2,7 +2,6 @@ package phase2
 
 import (
 	"bufio"
-	"log"
 	"os"
 	"sort"
 )
@@ -18,80 +17,70 @@ type TaskResult struct {
 }
 
 type Coordinator struct {
-	tasks     map[int]*Task
-	tasksLeft int
+	tasks       map[int]*Task
+	taskResults map[int]*TaskResult
+	tasksLeft   int
 }
 
-func (c *Coordinator) Allocate(tasks chan *Task) error {
+func (c *Coordinator) Allocate(tasks chan<- *Task) {
 	for i := 0; i < len(c.tasks); i++ {
 		task := c.tasks[i]
 		tasks <- task
 	}
-	return nil
+	close(tasks)
 }
 
-func (c *Coordinator) HandleResult(taskResults chan *TaskResult) error {
-	outputFile, err := os.Create("output.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func(outputFile *os.File, taskResults chan *TaskResult) {
-		err := outputFile.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-		close(taskResults)
-	}(outputFile, taskResults)
-
-	var formattedLines []*TaskResult
+func (c *Coordinator) receiveResults(taskResults <-chan *TaskResult) {
 	for taskResult := range taskResults {
 		c.tasksLeft--
-		formattedLines = append(formattedLines, taskResult)
+		c.taskResults[taskResult.id] = taskResult
 		if c.tasksLeft == 0 {
 			break
 		}
 	}
+}
 
-	sort.Slice(formattedLines, func(i, j int) bool {
-		return formattedLines[i].id < formattedLines[j].id
+func (c *Coordinator) HandleResult(output *os.File, taskResults <-chan *TaskResult) error {
+	c.receiveResults(taskResults)
+
+	// convert map of task results to a slice
+	taskResultSlice := make([]*TaskResult, 0, len(c.taskResults))
+	for _, taskResult := range c.taskResults {
+		taskResultSlice = append(taskResultSlice, taskResult)
+	}
+
+	// sort the slice based on the task id
+	sort.Slice(taskResultSlice, func(i, j int) bool {
+		return taskResultSlice[i].id < taskResultSlice[j].id
 	})
 
-	for _, taskResult := range formattedLines {
-		_, err := outputFile.WriteString(taskResult.line + "\n")
+	// write the sorted results to the output file
+	for _, taskResult := range taskResultSlice {
+		_, err := output.WriteString(taskResult.line + "\n")
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 
 	return nil
 }
 
-func MakeCoordinator(filename string) (*Coordinator, int) {
-	file, err := os.Open(filename)
-	if err != nil {
-		panic(err)
-	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(file)
-
+// MakeCoordinator initializes a coordinator with a list of tasks to be processed.
+func MakeCoordinator(scanner *bufio.Scanner) (*Coordinator, int, error) {
 	var lines []string
-	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
 
 	c := Coordinator{
-		tasks:     make(map[int]*Task),
-		tasksLeft: len(lines),
+		tasks:       make(map[int]*Task),
+		taskResults: make(map[int]*TaskResult),
+		tasksLeft:   len(lines),
 	}
 
 	for i, line := range lines {
 		c.tasks[i] = &Task{i, line}
 	}
 
-	return &c, c.tasksLeft
+	return &c, c.tasksLeft, nil
 }
